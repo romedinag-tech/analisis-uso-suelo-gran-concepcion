@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Análisis de Uso de Suelo · Gran Concepción</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+:root{--navy:#1f4e79;--navy2:#2e5e8c;--or:#c55a11;--bg:#f7f9fc;--ink:#1c2733;--mut:#5b6b7b;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+header{background:linear-gradient(135deg,#1f4e79,#2e5e8c);color:#fff;padding:54px 22px 40px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header h1{margin:0 0 8px;font-size:2.1rem;font-weight:800;letter-spacing:-.5px}
+header p{margin:4px 0;opacity:.92}
+.tag{display:inline-block;background:rgba(255,255,255,.16);padding:4px 12px;border-radius:20px;font-size:.8rem;margin-top:10px}
+section{padding:42px 0;border-bottom:1px solid #e6ebf1}
+h2{color:var(--navy);font-size:1.5rem;margin:0 0 6px}
+h2 .bar{display:block;width:54px;height:4px;background:var(--or);border-radius:3px;margin-top:8px}
+.lead{color:var(--mut);max-width:760px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-top:26px}
+.kpi{background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(20,40,80,.04)}
+.kpi .v{font-size:1.85rem;font-weight:800;color:var(--navy)}
+.kpi .l{color:var(--mut);font-size:.82rem;margin-top:4px}
+.kpi .s{color:var(--or);font-weight:700;font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;margin-top:24px}
+figure{margin:0;background:#fff;border:1px solid #e6ebf1;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(20,40,80,.04)}
+figure img{width:100%;display:block;cursor:zoom-in}
+figcaption{padding:10px 14px;font-size:.85rem;color:var(--mut)}
+#map{height:560px;border-radius:14px;border:1px solid #e6ebf1;margin-top:18px;z-index:0}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.ctrl button{border:1px solid var(--navy);background:#fff;color:var(--navy);padding:8px 16px;border-radius:22px;cursor:pointer;font-weight:600;font-size:.9rem}
+.ctrl button.on{background:var(--navy);color:#fff}
+.legend{background:#fff;padding:8px 10px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2);font-size:.8rem;line-height:1.5}
+.legend i{display:inline-block;width:12px;height:12px;margin-right:6px;border-radius:2px;vertical-align:-1px}
+.findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:22px}
+.card{background:#fff;border:1px solid #e6ebf1;border-left:4px solid var(--or);border-radius:10px;padding:18px}
+.card h3{margin:0 0 6px;color:var(--navy);font-size:1.05rem}
+.card p{margin:0;color:var(--mut);font-size:.92rem}
+.note{background:#fff8f0;border:1px solid #f0d9bf;border-radius:12px;padding:18px 20px;color:#7a4a17;font-size:.9rem;margin-top:20px}
+footer{padding:34px 0;color:var(--mut);font-size:.85rem;text-align:center}
+a{color:var(--navy)}
+.modal{display:none;position:fixed;inset:0;background:rgba(8,18,33,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+.modal img{max-width:94%;max-height:94%}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Análisis de Uso de Suelo del Gran Concepción</h1>
+  <p>Diagnóstico exploratorio y evolución temporal 2021–2025 a partir del catastro del SII</p>
+  <p style="opacity:.85">Rodrigo Medina González · Universidad de Concepción · Junio 2026</p>
+  <span class="tag">Uso EFECTIVO (fiscal) del suelo — no normativo</span>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Panorama<span class="bar"></span></h2>
+  <p class="lead">El área metropolitana del Gran Concepción crece de forma sostenida, combinando expansión en los bordes rural-urbanos con densificación y verticalización en el centro. Cifras a partir de ~452 mil predios (corte 2026) y nueve catastros semestrales 2021–2025.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="v">464.618</div><div class="l">predios (2025S2)</div><div class="s">+11,5% vs 2021</div></div>
+    <div class="kpi"><div class="v">39,6 M</div><div class="l">m² construidos</div><div class="s">+10,6% vs 2021</div></div>
+    <div class="kpi"><div class="v">3,79 M</div><div class="l">m² nuevos en 4 años</div><div class="s">stock incorporado</div></div>
+    <div class="kpi"><div class="v">36,6%</div><div class="l">predios ≥8 pisos en Concepción</div><div class="s">verticalización</div></div>
+    <div class="kpi"><div class="v">~6.064 ha</div><div class="l">suelo urbano subutilizado</div><div class="s">10.788 predios</div></div>
+    <div class="kpi"><div class="v">12</div><div class="l">comunas analizadas</div><div class="s">área ampliada</div></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Mapa interactivo por manzana<span class="bar"></span></h2>
+  <p class="lead">Cada punto es el centroide de una manzana (10.815 manzanas con coordenadas válidas). Cambia la variable representada. <b>Nota:</b> son centroides, no polígonos de superficie real (no se dispuso de capa vectorial).</p>
+  <div class="ctrl">
+    <button data-m="m2" class="on">Densidad construida</button>
+    <button data-m="pis">Altura media</button>
+    <button data-m="ed">Antigüedad</button>
+    <button data-m="val">Valor de suelo</button>
+  </div>
+  <div id="map"></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Diagnóstico<span class="bar"></span></h2>
+  <div class="findings">
+    <div class="card"><h3>Ritmo de crecimiento</h3><p>Crecimiento continuo, sin retrocesos: +11,5% de predios y +10,6% de m² construidos en cuatro años (~2,5% anual).</p></div>
+    <div class="card"><h3>Dónde crece más rápido</h3><p>En relativo, los bordes (Florida +33%, Santa Juana +21%). Entre urbanas: Tomé (+17,6%), San Pedro (+15,4%) y Coronel (+14,6%).</p></div>
+    <div class="card"><h3>Densificación y altura</h3><p>Verticalización concentrada en Concepción (mediana 5 pisos; 36,6% ≥8 pisos). Suma muchas unidades con poca superficie: departamentos pequeños.</p></div>
+    <div class="card"><h3>Concentración de valor</h3><p>Concepción lidera el valor de suelo (mediana 155 mil CLP/m²), seguida de San Pedro. Gradiente centro-periferia; Lota y bordes, lo más bajo.</p></div>
+    <div class="card"><h3>Suelo subutilizado</h3><p>~6.064 ha urbanas con construcción ≈0. Mayor incidencia relativa en bordes; mayor bolsa absoluta en paños industriales de Talcahuano.</p></div>
+    <div class="card"><h3>Antigüedad del parque</h3><p>San Pedro y Concepción, el stock más nuevo (mediana 18 años); Lota el más antiguo (36 años).</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Mapas estáticos<span class="bar"></span></h2>
+  <div class="grid" id="gal-maps"></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Indicadores y series<span class="bar"></span></h2>
+  <div class="grid" id="gal-charts"></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Nota metodológica<span class="bar"></span></h2>
+  <div class="note">
+    <b>Advertencias clave:</b> (1) Se reporta <b>uso efectivo (fiscal)</b>, no la zonificación normativa del Plan Regulador. (2) El identificador de comuna es el <b>código interno SII</b>, no INE; los KPIs de densidad poblacional/hogares quedan <b>pendientes</b> por falta de crosswalk SII↔INE/Censo. (3) Sin capa vectorial: los mapas usan <b>centroides de manzana</b>, no polígonos. (4) FOT, valor, subutilización y plusvalía son <b>proxies</b>; el avalúo es <b>nominal</b> (incluye reavalúo 2022, no deflactado). (5) Santa Juana solo participa en la serie temporal.
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  Fuente: Catastro de bienes raíces SII · Elaboración propia. Ejercicio académico, Universidad de Concepción.
+</div></footer>
+
+<div class="modal" id="modal"><img id="modal-img" src=""/></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const MAPS=[
+ ["mapa_densidad_construida","Densidad construida por manzana (m², escala log)"],
+ ["mapa_altura_media","Altura media (pisos) por manzana"],
+ ["mapa_uso_dominante","Uso de suelo dominante (uso efectivo)"],
+ ["mapa_antiguedad","Antigüedad media del parque construido"],
+ ["mapa_valor_suelo","Valor comercial de suelo (CLP/m², log)"]];
+const CHARTS=[
+ ["mix_usos_total","Mix de usos (% predios vs % m²)"],
+ ["verticalizacion_comuna","Verticalización por comuna"],
+ ["fot_comuna","Constructibilidad efectiva (proxy FOT)"],
+ ["valor_suelo_comuna","Valor de suelo por comuna"],
+ ["subutilizado_comuna","Suelo urbano subutilizado"],
+ ["hist_decadas","Antigüedad por década"],
+ ["serie_predios","Crecimiento de predios 2021–2025"],
+ ["serie_m2","Crecimiento de m² construidos"],
+ ["ranking_crecimiento_m2","Ranking de crecimiento por comuna"],
+ ["stock_nuevo_comuna","Incorporación de stock nuevo"],
+ ["mix_usos_temporal","Cambio del mix de usos en el tiempo"],
+ ["serie_avaluo","Evolución del avalúo fiscal (nominal)"]];
+function gallery(id,arr){const c=document.getElementById(id);arr.forEach(([f,cap])=>{
+ const fig=document.createElement("figure");
+ fig.innerHTML='<img loading="lazy" src="'+f+'.png" alt="'+cap+'"/><figcaption>'+cap+'</figcaption>';
+ c.appendChild(fig);});}
+gallery("gal-maps",MAPS); gallery("gal-charts",CHARTS);
+// modal zoom
+const modal=document.getElementById("modal"),mimg=document.getElementById("modal-img");
+document.addEventListener("click",e=>{if(e.target.tagName==="IMG"&&e.target.closest("figure")){mimg.src=e.target.src;modal.style.display="flex";}});
+modal.addEventListener("click",()=>modal.style.display="none");
+
+// ---- Leaflet ----
+const map=L.map("map",{preferCanvas:true}).setView([-36.85,-73.05],11);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+ {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+const RAMPS={
+ m2:{label:"m² construidos",log:true,colors:["#03051A","#5a187b","#bb3754","#ed6925","#fcffa4"]},
+ pis:{label:"Pisos medio",log:false,colors:["#440154","#3b528b","#21918c","#5ec962","#fde725"]},
+ ed:{label:"Edad media (años)",log:false,colors:["#feedde","#fdbe85","#fd8d3c","#e6550d","#a63603"]},
+ val:{label:"CLP/m² suelo",log:true,colors:["#ffffcc","#fed976","#fd8d3c","#e31a1c","#800026"]}};
+let feats=[],layer=null,legend=null,cur="m2";
+function quant(vals,ramp){const v=vals.filter(x=>x!=null&&isFinite(x)).sort((a,b)=>a-b);
+ const q=p=>v[Math.floor(p*(v.length-1))];
+ return ramp.log?[q(.2),q(.4),q(.6),q(.8),q(.95)]:[q(.2),q(.4),q(.6),q(.8),q(.95)];}
+function colorFor(x,brk,colors){if(x==null||!isFinite(x))return "#bbb";
+ for(let i=0;i<brk.length;i++)if(x<=brk[i])return colors[i];return colors[colors.length-1];}
+function draw(m){cur=m;const ramp=RAMPS[m];
+ const vals=feats.map(f=>f.properties[m]);const brk=quant(vals,ramp);
+ if(layer)map.removeLayer(layer);
+ layer=L.geoJSON({type:"FeatureCollection",features:feats},{
+  pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:3.2,stroke:false,
+    fillColor:colorFor(f.properties[m],brk,ramp.colors),fillOpacity:.8}),
+  onEachFeature:(f,l)=>{const p=f.properties;
+    l.bindPopup('<b>'+p.c+'</b><br>Predios: '+(p.n??'—')+'<br>m² const.: '+(p.m2?.toLocaleString('es-CL')??'—')+
+     '<br>Pisos medio: '+(p.pis??'—')+'<br>Edad media: '+(p.ed??'—')+' años<br>Uso dom.: '+p.uso+
+     '<br>Valor suelo: '+(p.val?p.val.toLocaleString('es-CL')+' CLP/m²':'—'));}
+ }).addTo(map);
+ if(legend)map.removeControl(legend);
+ legend=L.control({position:"bottomright"});
+ legend.onAdd=()=>{const d=L.DomUtil.create("div","legend");let h='<b>'+ramp.label+'</b><br>';
+  const fmt=x=>ramp.log?(x>=1000?Math.round(x/1000)+'k':Math.round(x)):Math.round(x*10)/10;
+  h+='<i style="background:'+ramp.colors[0]+'"></i>≤ '+fmt(brk[0])+'<br>';
+  for(let i=1;i<brk.length;i++)h+='<i style="background:'+ramp.colors[i]+'"></i>'+fmt(brk[i-1])+'–'+fmt(brk[i])+'<br>';
+  h+='<i style="background:'+ramp.colors[4]+'"></i>> '+fmt(brk[4]);d.innerHTML=h;return d;};
+ legend.addTo(map);
+ document.querySelectorAll(".ctrl button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));}
+document.querySelectorAll(".ctrl button").forEach(b=>b.onclick=()=>draw(b.dataset.m));
+fetch("manzanas.geojson").then(r=>r.json()).then(g=>{feats=g.features;draw("m2");});
+</script>
+</body>
+</html>
