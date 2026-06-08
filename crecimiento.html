@@ -49,6 +49,8 @@ a{color:var(--navy)}
 .tplabel span:last-child{color:var(--or);font-weight:700}
 .tpbar{height:7px;background:#e6ebf1;border-radius:4px;overflow:hidden}
 .tpbar i{display:block;height:100%;background:linear-gradient(90deg,#2e5e8c,#1a9850);border-radius:4px}
+.ctrl button{border:1px solid var(--navy);background:#fff;color:var(--navy);padding:8px 16px;border-radius:22px;cursor:pointer;font-weight:600;font-size:.9rem}
+.ctrl button.on{background:var(--navy);color:#fff}
 </style>
 </head>
 <body>
@@ -75,12 +77,17 @@ a{color:var(--navy)}
 </div></section>
 
 <section><div class="wrap">
-  <h2>Dónde crece la población: variación intercensal por zona<span class="bar"></span></h2>
-  <p class="lead">Cambio de población entre los Censos <b>2017 y 2024</b> en cada zona censal del Gran Concepción, comparando las manzanas presentes en ambos censos. <b style="color:#1a9850">Verde</b> = zonas que ganan población; <b style="color:#d73027">rojo</b> = zonas que pierden. La barra sobre el mapa muestra las zonas que más crecen; haz clic en una para centrarla.</p>
+  <h2>Variación intercensal de población (2017→2024)<span class="bar"></span></h2>
+  <p class="lead" id="ilead">Cambio de población entre los Censos <b>2017 y 2024</b>. <b style="color:#1a9850">Verde</b> = gana población; <b style="color:#d73027">rojo</b> = pierde. La vista <b>por comuna</b> usa los totales censales completos (cifras oficiales); la vista <b>por zona</b> compara solo las manzanas presentes en ambos censos (núcleo consolidado).</p>
+  <div class="ctrl" style="display:flex;gap:8px;margin-top:14px">
+    <button id="bt-com" class="on">Por comuna (%)</button>
+    <button id="bt-zon">Por zona (consolidadas)</button>
+  </div>
   <div id="imap"></div>
+  <div class="note" id="inote"></div>
   <div class="chartbox">
-    <h3>Top 12 zonas por crecimiento de población (2017→2024)</h3>
-    <p>Variación absoluta de habitantes en manzanas comparables entre censos.</p>
+    <h3 id="cint-title">Crecimiento de población por comuna (2017→2024)</h3>
+    <p id="cint-sub">Variación porcentual sobre los totales censales oficiales.</p>
     <div class="cwrap" style="height:430px"><canvas id="cint"></canvas></div>
   </div>
 </div></section>
@@ -201,66 +208,115 @@ fetch("data/crecimiento.json").then(r=>r.json()).then(D=>{
  cards.forEach(([h,p])=>{const d=document.createElement("div");d.className="card";d.innerHTML="<h3>"+h+"</h3><p>"+p+"</p>";f.appendChild(d);});
 });
 
-// ===== Mapa de variación intercensal por zona =====
+// ===== Mapa de variación intercensal: toggle comuna / zona =====
 const imap=L.map("imap",{preferCanvas:false}).setView([-36.86,-73.03],11);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
  {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(imap);
-function colorV(v){if(v==null)return "#d8dde3";
- if(v<0)return "#d73027"; if(v<20)return "#fee08b"; if(v<50)return "#a6d96a";
- if(v<100)return "#66bd63"; return "#1a9850";}
 const fmtN=x=>x==null?"s/d":Math.round(x).toLocaleString('es-CL');
-fetch("data/gc_zonas.geojson").then(r=>r.json()).then(g=>{
- const feats=g.features;
- const lyr=L.geoJSON(g,{
-   style:f=>({color:"#5b6b7b",weight:.5,fillColor:colorV(f.properties.vpct),fillOpacity:.8}),
-   onEachFeature:(f,l)=>{const p=f.properties;
-     l.on("mouseover",()=>l.setStyle({weight:2,color:"#1f4e79"}));
-     l.on("mouseout",()=>l.setStyle({weight:.5,color:"#5b6b7b"}));
-     l.bindPopup('<b>Zona '+p.zona+'</b> · '+p.comuna+'<br>Población 2017: '+fmtN(p.pob17)+
-       '<br>Población 2024: '+fmtN(p.pob24i)+'<br><b>Variación: '+(p.dpob>=0?'+':'')+fmtN(p.dpob)+
-       ' hab ('+(p.vpct==null?'s/d':(p.vpct>=0?'+':'')+p.vpct+'%')+')</b>');}
- }).addTo(imap);
- imap.fitBounds(lyr.getBounds(),{padding:[10,10]});
- // leyenda
- const lg=L.control({position:"bottomright"});
+const sg=v=>(v>=0?"+":"")+v;
+function colC(v){if(v==null)return "#d8dde3";
+ if(v<=-5)return "#d73027"; if(v<0)return "#fc8d59"; if(v<5)return "#fee08b";
+ if(v<10)return "#a6d96a"; if(v<15)return "#66bd63"; return "#1a9850";}
+let imLayer=null,imLegend=null,imPanel=null,imChart=null;const DATA={};
+function clearMap(){if(imLayer){imap.removeLayer(imLayer);imLayer=null;}
+ if(imLegend){imap.removeControl(imLegend);imLegend=null;}
+ if(imPanel){imap.removeControl(imPanel);imPanel=null;}}
+function legendPct(){const lg=L.control({position:"bottomright"});
  lg.onAdd=()=>{const d=L.DomUtil.create("div","ilegend");
-   d.innerHTML='<b>Variación población 2017→2024</b><br>'+
-   '<i style="background:#d73027"></i>pierde (&lt;0%)<br>'+
-   '<i style="background:#fee08b"></i>0–20%<br>'+
-   '<i style="background:#a6d96a"></i>20–50%<br>'+
-   '<i style="background:#66bd63"></i>50–100%<br>'+
-   '<i style="background:#1a9850"></i>&gt;100%<br>'+
-   '<i style="background:#d8dde3"></i>sin dato';return d;};
- lg.addTo(imap);
- // barra flotante: top zonas que más crecen (abs)
+  d.innerHTML='<b>Variación 2017→2024 (%)</b><br>'+
+  '<i style="background:#d73027"></i>≤ -5%<br><i style="background:#fc8d59"></i>-5 a 0%<br>'+
+  '<i style="background:#fee08b"></i>0 a 5%<br><i style="background:#a6d96a"></i>5 a 10%<br>'+
+  '<i style="background:#66bd63"></i>10 a 15%<br><i style="background:#1a9850"></i>&gt; 15%';
+  return d;};
+ return lg;}
+
+function renderComuna(){clearMap();const feats=DATA.com.features;
+ imLayer=L.geoJSON(DATA.com,{
+  style:f=>({color:"#fff",weight:1,fillColor:colC(f.properties.vpct),fillOpacity:.82}),
+  onEachFeature:(f,l)=>{const p=f.properties;
+    l.on("mouseover",()=>l.setStyle({weight:2.5,color:"#1f4e79"}));
+    l.on("mouseout",()=>l.setStyle({weight:1,color:"#fff"}));
+    l.bindTooltip(p.comuna+": "+sg(p.vpct)+"%",{sticky:true});
+    l.bindPopup('<b>'+p.comuna+'</b><br>Población 2017: '+fmtN(p.pob17)+'<br>Población 2024: '+fmtN(p.pob24)+
+      '<br><b>Variación: '+sg(p.dpob)+' hab ('+sg(p.vpct)+'%)</b>');}
+ }).addTo(imap);
+ imap.fitBounds(imLayer.getBounds(),{padding:[10,10]});
+ imLegend=legendPct();imLegend.addTo(imap);
+ const top=[...feats].sort((a,b)=>b.properties.vpct-a.properties.vpct);
+ const mx=Math.max(...top.map(f=>Math.abs(f.properties.vpct)))||1;
+ imPanel=L.control({position:"topright"});
+ imPanel.onAdd=()=>{const d=L.DomUtil.create("div","toppanel");
+   let h='<h4>Ranking comunal (%)</h4>';
+   top.forEach(f=>{const p=f.properties;const w=Math.round(100*Math.abs(p.vpct)/mx);const col=p.vpct>=0?'#1a9850':'#d73027';
+     h+='<div class="tprow" data-cut="'+p.cut+'"><div class="tplabel"><span>'+p.comuna+'</span><span style="color:'+col+'">'+sg(p.vpct)+'%</span></div>'+
+        '<div class="tpbar"><i style="width:'+w+'%;background:'+col+'"></i></div></div>';});
+   d.innerHTML=h;L.DomEvent.disableClickPropagation(d);
+   setTimeout(()=>d.querySelectorAll(".tprow").forEach(row=>row.onclick=()=>{
+     const ft=feats.find(f=>String(f.properties.cut)===row.getAttribute("data-cut"));
+     if(ft)imap.fitBounds(L.geoJSON(ft).getBounds(),{maxZoom:13,padding:[30,30]});}),0);
+   return d;};
+ imPanel.addTo(imap);
+ if(imChart)imChart.destroy();
+ const ord=[...feats].sort((a,b)=>b.properties.vpct-a.properties.vpct);
+ imChart=new Chart(cint,{type:"bar",data:{labels:ord.map(f=>f.properties.comuna),
+   datasets:[{data:ord.map(f=>f.properties.vpct),backgroundColor:ord.map(f=>f.properties.vpct>=0?"#1a9850":"#d73027")}]},
+   options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
+     tooltip:{callbacks:{label:c=>{const p=ord[c.dataIndex].properties;
+       return sg(p.vpct)+"% ("+sg(p.dpob)+" hab) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24);}}}},
+     scales:{x:{title:{display:true,text:"variación % de población 2017→2024"}}}}});
+ document.getElementById("cint-title").textContent="Crecimiento de población por comuna (2017→2024)";
+ document.getElementById("cint-sub").textContent="Variación porcentual sobre los totales censales oficiales.";
+ document.getElementById("inote").style.display="none";}
+
+function renderZona(){clearMap();const feats=DATA.zon.features;
+ imLayer=L.geoJSON(DATA.zon,{
+  style:f=>({color:"#5b6b7b",weight:.5,fillColor:colC(f.properties.vpct),fillOpacity:.8}),
+  onEachFeature:(f,l)=>{const p=f.properties;
+    l.on("mouseover",()=>l.setStyle({weight:2,color:"#1f4e79"}));
+    l.on("mouseout",()=>l.setStyle({weight:.5,color:"#5b6b7b"}));
+    l.bindPopup('<b>Zona '+p.zona+'</b> · '+p.comuna+'<br>Pob. consolidada 2017: '+fmtN(p.pob17)+
+      '<br>2024: '+fmtN(p.pob24i)+'<br><b>'+sg(p.dpob)+' hab ('+(p.vpct==null?'s/d':sg(p.vpct)+'%')+')</b>');}
+ }).addTo(imap);
+ imap.fitBounds(imLayer.getBounds(),{padding:[10,10]});
+ imLegend=legendPct();imLegend.addTo(imap);
  const top=feats.filter(f=>f.properties.dpob!=null&&f.properties.pob17>=100)
    .sort((a,b)=>b.properties.dpob-a.properties.dpob).slice(0,8);
  const mx=top.length?top[0].properties.dpob:1;
- const tp=L.control({position:"topright"});
- tp.onAdd=()=>{const d=L.DomUtil.create("div","toppanel");
+ imPanel=L.control({position:"topright"});
+ imPanel.onAdd=()=>{const d=L.DomUtil.create("div","toppanel");
    let h='<h4>Zonas que más crecen</h4>';
    top.forEach((f,i)=>{const p=f.properties;
      h+='<div class="tprow" data-zona="'+p.zona+'"><div class="tplabel"><span>'+(i+1)+'. '+p.comuna+' ·'+p.zona.slice(-3)+'</span><span>+'+fmtN(p.dpob)+'</span></div>'+
         '<div class="tpbar"><i style="width:'+Math.round(100*p.dpob/mx)+'%"></i></div></div>';});
-   d.innerHTML=h;
-   L.DomEvent.disableClickPropagation(d);
-   setTimeout(()=>{d.querySelectorAll(".tprow").forEach(row=>{row.onclick=()=>{
-     const z=row.getAttribute("data-zona");
-     const ft=feats.find(f=>String(f.properties.zona)===z);
-     if(ft){const gl=L.geoJSON(ft);imap.fitBounds(gl.getBounds(),{maxZoom:15,padding:[40,40]});}};});},0);
+   d.innerHTML=h;L.DomEvent.disableClickPropagation(d);
+   setTimeout(()=>d.querySelectorAll(".tprow").forEach(row=>row.onclick=()=>{
+     const ft=feats.find(f=>String(f.properties.zona)===row.getAttribute("data-zona"));
+     if(ft)imap.fitBounds(L.geoJSON(ft).getBounds(),{maxZoom:15,padding:[40,40]});}),0);
    return d;};
- tp.addTo(imap);
- // grafico ranking top 12
+ imPanel.addTo(imap);
+ if(imChart)imChart.destroy();
  const t12=feats.filter(f=>f.properties.dpob!=null&&f.properties.pob17>=100)
    .sort((a,b)=>b.properties.dpob-a.properties.dpob).slice(0,12);
- new Chart(cint,{type:"bar",data:{labels:t12.map(f=>f.properties.comuna+" · z"+f.properties.zona.slice(-3)),
-   datasets:[{label:"Crecimiento de población (hab)",data:t12.map(f=>f.properties.dpob),
-     backgroundColor:"#1a9850"}]},
+ imChart=new Chart(cint,{type:"bar",data:{labels:t12.map(f=>f.properties.comuna+" · z"+f.properties.zona.slice(-3)),
+   datasets:[{data:t12.map(f=>f.properties.dpob),backgroundColor:"#2e5e8c"}]},
    options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
      tooltip:{callbacks:{label:c=>{const p=t12[c.dataIndex].properties;
-       return "+"+fmtN(p.dpob)+" hab ("+(p.vpct>=0?"+":"")+p.vpct+"%) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24i);}}}},
-     scales:{x:{title:{display:true,text:"habitantes ganados 2017→2024"}}}}});
-});
+       return "+"+fmtN(p.dpob)+" hab ("+sg(p.vpct)+"%) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24i);}}}},
+     scales:{x:{title:{display:true,text:"habitantes ganados (manzanas consolidadas)"}}}}});
+ document.getElementById("cint-title").textContent="Top 12 zonas por crecimiento (manzanas consolidadas)";
+ document.getElementById("cint-sub").textContent="Variación absoluta en manzanas presentes en ambos censos.";
+ const nt=document.getElementById("inote");nt.style.display="block";
+ nt.innerHTML='<b>Ojo:</b> esta vista compara solo las <b>manzanas presentes en ambos censos</b> (núcleo consolidado). No incluye las <b>manzanas nuevas</b>, donde ocurre buena parte del crecimiento de comunas en expansión como <b>San Pedro de la Paz</b> y <b>Coronel</b>; por eso su casco antiguo puede aparecer rojo aunque la comuna crezca. Para el dato oficial usa la vista <b>Por comuna (%)</b>.';}
+
+function setMode(m){document.getElementById("bt-com").classList.toggle("on",m==="com");
+ document.getElementById("bt-zon").classList.toggle("on",m==="zon");
+ if(m==="com")renderComuna();else renderZona();}
+document.getElementById("bt-com").onclick=()=>setMode("com");
+document.getElementById("bt-zon").onclick=()=>setMode("zon");
+Promise.all([
+ fetch("data/gc_comunas_intercensal.geojson").then(r=>r.json()),
+ fetch("data/gc_zonas.geojson").then(r=>r.json())
+]).then(([com,zon])=>{DATA.com=com;DATA.zon=zon;setMode("com");});
 </script>
 </body>
 </html>
