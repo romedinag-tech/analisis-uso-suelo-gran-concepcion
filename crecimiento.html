@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Dinámica de crecimiento urbano · Gran Concepción</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <style>
 :root{--navy:#1f4e79;--navy2:#2e5e8c;--or:#c55a11;--teal:#21918c;--bg:#f7f9fc;--ink:#1c2733;--mut:#5b6b7b;}
 *{box-sizing:border-box}
@@ -36,6 +37,18 @@ h2 .bar{display:block;width:54px;height:4px;background:var(--or);border-radius:3
 .note{background:#fff8f0;border:1px solid #f0d9bf;border-radius:12px;padding:16px 18px;color:#7a4a17;font-size:.88rem;margin-top:18px}
 footer{padding:30px 0;color:var(--mut);font-size:.85rem;text-align:center}
 a{color:var(--navy)}
+#imap{height:580px;border-radius:14px;border:1px solid #e6ebf1;margin-top:16px;z-index:0}
+.ilegend{background:#fff;padding:9px 11px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2);font-size:.8rem;line-height:1.55}
+.ilegend i{display:inline-block;width:13px;height:13px;margin-right:6px;border-radius:2px;vertical-align:-2px}
+.ilegend b{color:var(--navy)}
+.toppanel{background:rgba(255,255,255,.95);padding:11px 13px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.25);font-size:.8rem;width:236px}
+.toppanel h4{margin:0 0 8px;color:var(--navy);font-size:.86rem}
+.tprow{margin:5px 0;cursor:pointer}
+.tprow:hover .tplabel{color:var(--navy);font-weight:700}
+.tplabel{display:flex;justify-content:space-between;font-size:.76rem;color:var(--ink);margin-bottom:2px}
+.tplabel span:last-child{color:var(--or);font-weight:700}
+.tpbar{height:7px;background:#e6ebf1;border-radius:4px;overflow:hidden}
+.tpbar i{display:block;height:100%;background:linear-gradient(90deg,#2e5e8c,#1a9850);border-radius:4px}
 </style>
 </head>
 <body>
@@ -58,6 +71,17 @@ a{color:var(--navy)}
     <h3>Crecimiento comparado (índice base 2017 = 100)</h3>
     <p>Stock de m² construidos por año de construcción vs. población censal.</p>
     <div class="cwrap"><canvas id="c1"></canvas></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Dónde crece la población: variación intercensal por zona<span class="bar"></span></h2>
+  <p class="lead">Cambio de población entre los Censos <b>2017 y 2024</b> en cada zona censal del Gran Concepción, comparando las manzanas presentes en ambos censos. <b style="color:#1a9850">Verde</b> = zonas que ganan población; <b style="color:#d73027">rojo</b> = zonas que pierden. La barra sobre el mapa muestra las zonas que más crecen; haz clic en una para centrarla.</p>
+  <div id="imap"></div>
+  <div class="chartbox">
+    <h3>Top 12 zonas por crecimiento de población (2017→2024)</h3>
+    <p>Variación absoluta de habitantes en manzanas comparables entre censos.</p>
+    <div class="cwrap" style="height:430px"><canvas id="cint"></canvas></div>
   </div>
 </div></section>
 
@@ -111,6 +135,7 @@ a{color:var(--navy)}
 </div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const NAVY="#1f4e79",OR="#c55a11",TEAL="#21918c",GREY="#9aa7b4";
 Chart.defaults.font.family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
@@ -174,6 +199,67 @@ fetch("data/crecimiento.json").then(r=>r.json()).then(D=>{
   ["Departamentos al alza","En 2020 y 2023 se construyeron más departamentos que casas (ratio < 1); la vivienda en altura gana terreno."]
  ];
  cards.forEach(([h,p])=>{const d=document.createElement("div");d.className="card";d.innerHTML="<h3>"+h+"</h3><p>"+p+"</p>";f.appendChild(d);});
+});
+
+// ===== Mapa de variación intercensal por zona =====
+const imap=L.map("imap",{preferCanvas:false}).setView([-36.86,-73.03],11);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+ {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(imap);
+function colorV(v){if(v==null)return "#d8dde3";
+ if(v<0)return "#d73027"; if(v<20)return "#fee08b"; if(v<50)return "#a6d96a";
+ if(v<100)return "#66bd63"; return "#1a9850";}
+const fmtN=x=>x==null?"s/d":Math.round(x).toLocaleString('es-CL');
+fetch("data/gc_zonas.geojson").then(r=>r.json()).then(g=>{
+ const feats=g.features;
+ const lyr=L.geoJSON(g,{
+   style:f=>({color:"#5b6b7b",weight:.5,fillColor:colorV(f.properties.vpct),fillOpacity:.8}),
+   onEachFeature:(f,l)=>{const p=f.properties;
+     l.on("mouseover",()=>l.setStyle({weight:2,color:"#1f4e79"}));
+     l.on("mouseout",()=>l.setStyle({weight:.5,color:"#5b6b7b"}));
+     l.bindPopup('<b>Zona '+p.zona+'</b> · '+p.comuna+'<br>Población 2017: '+fmtN(p.pob17)+
+       '<br>Población 2024: '+fmtN(p.pob24i)+'<br><b>Variación: '+(p.dpob>=0?'+':'')+fmtN(p.dpob)+
+       ' hab ('+(p.vpct==null?'s/d':(p.vpct>=0?'+':'')+p.vpct+'%')+')</b>');}
+ }).addTo(imap);
+ imap.fitBounds(lyr.getBounds(),{padding:[10,10]});
+ // leyenda
+ const lg=L.control({position:"bottomright"});
+ lg.onAdd=()=>{const d=L.DomUtil.create("div","ilegend");
+   d.innerHTML='<b>Variación población 2017→2024</b><br>'+
+   '<i style="background:#d73027"></i>pierde (&lt;0%)<br>'+
+   '<i style="background:#fee08b"></i>0–20%<br>'+
+   '<i style="background:#a6d96a"></i>20–50%<br>'+
+   '<i style="background:#66bd63"></i>50–100%<br>'+
+   '<i style="background:#1a9850"></i>&gt;100%<br>'+
+   '<i style="background:#d8dde3"></i>sin dato';return d;};
+ lg.addTo(imap);
+ // barra flotante: top zonas que más crecen (abs)
+ const top=feats.filter(f=>f.properties.dpob!=null&&f.properties.pob17>=100)
+   .sort((a,b)=>b.properties.dpob-a.properties.dpob).slice(0,8);
+ const mx=top.length?top[0].properties.dpob:1;
+ const tp=L.control({position:"topright"});
+ tp.onAdd=()=>{const d=L.DomUtil.create("div","toppanel");
+   let h='<h4>Zonas que más crecen</h4>';
+   top.forEach((f,i)=>{const p=f.properties;
+     h+='<div class="tprow" data-zona="'+p.zona+'"><div class="tplabel"><span>'+(i+1)+'. '+p.comuna+' ·'+p.zona.slice(-3)+'</span><span>+'+fmtN(p.dpob)+'</span></div>'+
+        '<div class="tpbar"><i style="width:'+Math.round(100*p.dpob/mx)+'%"></i></div></div>';});
+   d.innerHTML=h;
+   L.DomEvent.disableClickPropagation(d);
+   setTimeout(()=>{d.querySelectorAll(".tprow").forEach(row=>{row.onclick=()=>{
+     const z=row.getAttribute("data-zona");
+     const ft=feats.find(f=>String(f.properties.zona)===z);
+     if(ft){const gl=L.geoJSON(ft);imap.fitBounds(gl.getBounds(),{maxZoom:15,padding:[40,40]});}};});},0);
+   return d;};
+ tp.addTo(imap);
+ // grafico ranking top 12
+ const t12=feats.filter(f=>f.properties.dpob!=null&&f.properties.pob17>=100)
+   .sort((a,b)=>b.properties.dpob-a.properties.dpob).slice(0,12);
+ new Chart(cint,{type:"bar",data:{labels:t12.map(f=>f.properties.comuna+" · z"+f.properties.zona.slice(-3)),
+   datasets:[{label:"Crecimiento de población (hab)",data:t12.map(f=>f.properties.dpob),
+     backgroundColor:"#1a9850"}]},
+   options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
+     tooltip:{callbacks:{label:c=>{const p=t12[c.dataIndex].properties;
+       return "+"+fmtN(p.dpob)+" hab ("+(p.vpct>=0?"+":"")+p.vpct+"%) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24i);}}}},
+     scales:{x:{title:{display:true,text:"habitantes ganados 2017→2024"}}}}});
 });
 </script>
 </body>
