@@ -42,6 +42,21 @@ footer{padding:34px 0;color:var(--mut);font-size:.85rem;text-align:center}
 a{color:var(--navy)}
 .modal{display:none;position:fixed;inset:0;background:rgba(8,18,33,.88);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
 .modal img{max-width:94%;max-height:94%}
+.btn{display:inline-block;margin-top:14px;background:var(--navy);color:#fff;padding:9px 22px;border-radius:24px;text-decoration:none;font-weight:700;font-size:.92rem;transition:background .15s}
+.btn:hover{background:var(--navy2)}
+.findings.big{grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px}
+.findings.big .card{padding:26px 28px;border-left-width:5px}
+.findings.big .card h3{font-size:1.22rem;margin-bottom:10px}
+.findings.big .card p{font-size:1.02rem;line-height:1.65}
+.cards-cta .card{display:flex;flex-direction:column}
+.viewer{display:grid;grid-template-columns:280px 1fr;gap:22px;margin-top:24px;align-items:start}
+.vmenu{display:flex;flex-direction:column;gap:6px;position:sticky;top:14px}
+.vmenu button{text-align:left;background:#fff;border:1px solid #e6ebf1;border-radius:9px;padding:11px 14px;cursor:pointer;color:var(--navy);font-size:.9rem;font-weight:600;line-height:1.3;transition:all .12s}
+.vmenu button:hover{border-color:var(--navy)}
+.vmenu button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.vstage figure{margin:0}
+.vstage img{width:100%;display:block;cursor:zoom-in}
+@media(max-width:760px){.viewer{grid-template-columns:1fr}.vmenu{position:static;flex-direction:row;flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -67,16 +82,18 @@ a{color:var(--navy)}
 
 <section><div class="wrap">
   <h2>Análisis interactivos<span class="bar"></span></h2>
-  <p class="lead">Nuevos módulos que cruzan el catastro SII con el Censo 2024: mapas por zona censal con selector de indicadores (incluida la disponibilidad de suelo por habitante) y el análisis de cómo crece la ciudad.</p>
-  <div class="findings">
-    <a class="card" href="zonas.html" style="text-decoration:none;display:block">
-      <h3>Mapas zonales · suelo por habitante →</h3>
-      <p>Choropleth por zona censal (316 zonas): densidad poblacional, departamentos, envejecimiento y disponibilidad de suelo (m²/habitante) de comercio, educación, salud, industria y más. Con selector de indicador.</p>
-    </a>
-    <a class="card" href="crecimiento.html" style="text-decoration:none;display:block">
-      <h3>Cómo crece la ciudad →</h3>
+  <p class="lead">Dos módulos que cruzan el catastro SII con el Censo 2024: la oferta de suelo y servicios por habitante a nivel de zona censal, y la dinámica de crecimiento de la ciudad.</p>
+  <div class="findings big cards-cta">
+    <div class="card">
+      <h3>Oferta de servicios por habitante</h3>
+      <p>Mapa coroplético por zona censal (316 zonas) con selector de indicador: densidad poblacional, departamentos, envejecimiento, escolaridad, hacinamiento y disponibilidad de suelo (m²/habitante) de comercio, educación, salud, oficina, industria y deporte.</p>
+      <a class="btn" href="zonas.html">Ver →</a>
+    </div>
+    <div class="card">
+      <h3>Dinámica de crecimiento urbano</h3>
       <p>Personas vs. m² construidos (qué crece más rápido), casas vs. departamentos desde 2015, y expansión vs. densificación año a año y por comuna.</p>
-    </a>
+      <a class="btn" href="crecimiento.html">Ver →</a>
+    </div>
   </div>
 </div></section>
 
@@ -94,7 +111,7 @@ a{color:var(--navy)}
 
 <section><div class="wrap">
   <h2>Diagnóstico<span class="bar"></span></h2>
-  <div class="findings">
+  <div class="findings big">
     <div class="card"><h3>Ritmo de crecimiento</h3><p>Crecimiento continuo, sin retrocesos: +11,5% de predios y +10,6% de m² construidos en cuatro años (~2,5% anual).</p></div>
     <div class="card"><h3>Dónde crece más rápido</h3><p>En relativo, los bordes (Florida +33%, Santa Juana +21%). Entre urbanas: Tomé (+17,6%), San Pedro (+15,4%) y Coronel (+14,6%).</p></div>
     <div class="card"><h3>Densificación y altura</h3><p>Verticalización concentrada en Concepción (mediana 5 pisos; 36,6% ≥8 pisos). Suma muchas unidades con poca superficie: departamentos pequeños.</p></div>
@@ -105,13 +122,12 @@ a{color:var(--navy)}
 </div></section>
 
 <section><div class="wrap">
-  <h2>Mapas estáticos<span class="bar"></span></h2>
-  <div class="grid" id="gal-maps"></div>
-</div></section>
-
-<section><div class="wrap">
   <h2>Indicadores y series<span class="bar"></span></h2>
-  <div class="grid" id="gal-charts"></div>
+  <p class="lead">Elige un indicador o serie en el menú lateral para visualizarlo. Haz clic en la imagen para ampliarla.</p>
+  <div class="viewer">
+    <div class="vmenu" id="vmenu"></div>
+    <div class="vstage" id="vstage"></div>
+  </div>
 </div></section>
 
 <section><div class="wrap">
@@ -129,12 +145,6 @@ a{color:var(--navy)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const MAPS=[
- ["mapa_densidad_construida","Densidad construida por manzana (m², escala log)"],
- ["mapa_altura_media","Altura media (pisos) por manzana"],
- ["mapa_uso_dominante","Uso de suelo dominante (uso efectivo)"],
- ["mapa_antiguedad","Antigüedad media del parque construido"],
- ["mapa_valor_suelo","Valor comercial de suelo (CLP/m², log)"]];
 const CHARTS=[
  ["mix_usos_total","Mix de usos (% predios vs % m²)"],
  ["verticalizacion_comuna","Verticalización por comuna"],
@@ -148,11 +158,12 @@ const CHARTS=[
  ["stock_nuevo_comuna","Incorporación de stock nuevo"],
  ["mix_usos_temporal","Cambio del mix de usos en el tiempo"],
  ["serie_avaluo","Evolución del avalúo fiscal (nominal)"]];
-function gallery(id,arr){const c=document.getElementById(id);arr.forEach(([f,cap])=>{
- const fig=document.createElement("figure");
- fig.innerHTML='<img loading="lazy" src="'+f+'.png" alt="'+cap+'"/><figcaption>'+cap+'</figcaption>';
- c.appendChild(fig);});}
-gallery("gal-maps",MAPS); gallery("gal-charts",CHARTS);
+const vmenu=document.getElementById("vmenu"),vstage=document.getElementById("vstage");
+function showChart(i){const [f,cap]=CHARTS[i];
+ vstage.innerHTML='<figure><img src="'+f+'.png" alt="'+cap+'"/><figcaption>'+cap+'</figcaption></figure>';
+ [...vmenu.children].forEach((b,j)=>b.classList.toggle("on",j===i));}
+CHARTS.forEach(([f,cap],i)=>{const b=document.createElement("button");b.textContent=cap;b.onclick=()=>showChart(i);vmenu.appendChild(b);});
+showChart(0);
 // modal zoom
 const modal=document.getElementById("modal"),mimg=document.getElementById("modal-img");
 document.addEventListener("click",e=>{if(e.target.tagName==="IMG"&&e.target.closest("figure")){mimg.src=e.target.src;modal.style.display="flex";}});
