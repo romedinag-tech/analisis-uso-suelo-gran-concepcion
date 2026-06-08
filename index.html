@@ -66,6 +66,21 @@ a{color:var(--navy)}
 </div></section>
 
 <section><div class="wrap">
+  <h2>Análisis interactivos<span class="bar"></span></h2>
+  <p class="lead">Nuevos módulos que cruzan el catastro SII con el Censo 2024: mapas por zona censal con selector de indicadores (incluida la disponibilidad de suelo por habitante) y el análisis de cómo crece la ciudad.</p>
+  <div class="findings">
+    <a class="card" href="zonas.html" style="text-decoration:none;display:block">
+      <h3>Mapas zonales · suelo por habitante →</h3>
+      <p>Choropleth por zona censal (316 zonas): densidad poblacional, departamentos, envejecimiento y disponibilidad de suelo (m²/habitante) de comercio, educación, salud, industria y más. Con selector de indicador.</p>
+    </a>
+    <a class="card" href="crecimiento.html" style="text-decoration:none;display:block">
+      <h3>Cómo crece la ciudad →</h3>
+      <p>Personas vs. m² construidos (qué crece más rápido), casas vs. departamentos desde 2015, y expansión vs. densificación año a año y por comuna.</p>
+    </a>
+  </div>
+</div></section>
+
+<section><div class="wrap">
   <h2>Mapa interactivo por manzana<span class="bar"></span></h2>
   <p class="lead">Cada punto es el centroide de una manzana (10.815 manzanas con coordenadas válidas). Cambia la variable representada. <b>Nota:</b> son centroides, no polígonos de superficie real (no se dispuso de capa vectorial).</p>
   <div class="ctrl">
@@ -102,7 +117,7 @@ a{color:var(--navy)}
 <section><div class="wrap">
   <h2>Nota metodológica<span class="bar"></span></h2>
   <div class="note">
-    <b>Advertencias clave:</b> (1) Se reporta <b>uso efectivo (fiscal)</b>, no la zonificación normativa del Plan Regulador. (2) El identificador de comuna es el <b>código interno SII</b>, no INE; los KPIs de densidad poblacional/hogares quedan <b>pendientes</b> por falta de crosswalk SII↔INE/Censo. (3) Sin capa vectorial: los mapas usan <b>centroides de manzana</b>, no polígonos. (4) FOT, valor, subutilización y plusvalía son <b>proxies</b>; el avalúo es <b>nominal</b> (incluye reavalúo 2022, no deflactado). (5) Santa Juana solo participa en la serie temporal.
+    <b>Advertencias clave:</b> (1) Se reporta <b>uso efectivo (fiscal)</b>, no la zonificación normativa del Plan Regulador. (2) El catastro usa el <b>código interno SII</b>, no INE; el cruce SII↔Censo ya está <b>resuelto a nivel de zona censal</b> por geolocalización (centroide de manzana → polígono de zona), lo que habilita los indicadores por habitante. (3) El mapa por manzana usa <b>centroides</b>; los mapas zonales usan los <b>polígonos del Censo 2024</b>. (4) FOT, valor, subutilización y plusvalía son <b>proxies</b>; el avalúo es <b>nominal</b> (incluye reavalúo 2022, no deflactado). (5) La serie temporal se reconstruye con el <b>año de construcción</b> del catastro vigente (2025 parcial). (6) Santa Juana participa parcialmente.
   </div>
 </div></section>
 

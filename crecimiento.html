@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cómo crece la ciudad · Gran Concepción</title>
+<style>
+:root{--navy:#1f4e79;--navy2:#2e5e8c;--or:#c55a11;--teal:#21918c;--bg:#f7f9fc;--ink:#1c2733;--mut:#5b6b7b;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+header{background:linear-gradient(135deg,#1f4e79,#2e5e8c);color:#fff;padding:40px 22px 30px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header h1{margin:0 0 8px;font-size:1.8rem;font-weight:800;letter-spacing:-.5px}
+header p{margin:4px 0;opacity:.92}
+header a{color:#fff;opacity:.9;font-size:.9rem;text-decoration:none}
+.tag{display:inline-block;background:rgba(255,255,255,.16);padding:4px 12px;border-radius:20px;font-size:.8rem;margin-top:10px}
+section{padding:36px 0;border-bottom:1px solid #e6ebf1}
+h2{color:var(--navy);font-size:1.4rem;margin:0 0 6px}
+h2 .bar{display:block;width:54px;height:4px;background:var(--or);border-radius:3px;margin-top:8px}
+.lead{color:var(--mut);max-width:820px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-top:22px}
+.kpi{background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:20px}
+.kpi .v{font-size:1.7rem;font-weight:800;color:var(--navy)}
+.kpi .v.or{color:var(--or)}
+.kpi .l{color:var(--mut);font-size:.82rem;margin-top:4px}
+.chartbox{background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:18px;margin-top:18px;box-shadow:0 2px 10px rgba(20,40,80,.04)}
+.chartbox h3{margin:0 0 2px;color:var(--navy);font-size:1.05rem}
+.chartbox p{margin:0 0 10px;color:var(--mut);font-size:.86rem}
+.cwrap{position:relative;height:340px}
+.two{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-top:18px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:22px}
+.card{background:#fff;border:1px solid #e6ebf1;border-left:4px solid var(--or);border-radius:10px;padding:18px}
+.card h3{margin:0 0 6px;color:var(--navy);font-size:1.05rem}
+.card p{margin:0;color:var(--mut);font-size:.92rem}
+.note{background:#fff8f0;border:1px solid #f0d9bf;border-radius:12px;padding:16px 18px;color:#7a4a17;font-size:.88rem;margin-top:18px}
+footer{padding:30px 0;color:var(--mut);font-size:.85rem;text-align:center}
+a{color:var(--navy)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a href="index.html">← Volver al inicio</a>
+  <h1>Cómo crece el Gran Concepción</h1>
+  <p>Personas vs. superficie construida, tipo de vivienda y expansión vs. densificación (2015–2025).</p>
+  <span class="tag">Catastro SII (año de construcción) + Censo 2017/2024</span>
+</div></header>
+
+<section><div class="wrap">
+  <h2>¿Crece más la población o la ciudad construida?<span class="bar"></span></h2>
+  <p class="lead">Entre los dos últimos censos, la <b>superficie construida creció ~8 veces más rápido que la población</b>: la ciudad acumula metros cuadrados mucho más rápido que habitantes. Refleja hogares más pequeños, más espacio por persona y un parque que se renueva y verticaliza.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="v">+3,0%</div><div class="l">Población 2017→2024 (995.658 → 1.025.448)</div></div>
+    <div class="kpi"><div class="v or">+23,7%</div><div class="l">m² construidos 2017→2024 (31,8M → 39,4M)</div></div>
+    <div class="kpi"><div class="v">7,9×</div><div class="l">la ciudad construida crece más rápido que la gente</div></div>
+  </div>
+  <div class="chartbox">
+    <h3>Crecimiento comparado (índice base 2017 = 100)</h3>
+    <p>Stock de m² construidos por año de construcción vs. población censal.</p>
+    <div class="cwrap"><canvas id="c1"></canvas></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>¿Qué se construye más: casas o departamentos?<span class="bar"></span></h2>
+  <p class="lead">Unidades habitacionales nuevas por año de construcción. <b>Criterio:</b> departamento/edificio = predio habitacional de 3+ pisos; casa = 1–2 pisos. La construcción de departamentos se acerca y en algunos años supera a la de casas (2020 y 2023, ratio &lt; 1).</p>
+  <div class="chartbox">
+    <h3>Casas vs. departamentos construidos por año (unidades)</h3>
+    <p>Barras: unidades nuevas. Línea: cociente casas ÷ departamentos (1 = misma cantidad).</p>
+    <div class="cwrap"><canvas id="c2"></canvas></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>¿Expansión o densificación?<span class="bar"></span></h2>
+  <p class="lead">Tomando 2015 como línea base, se clasifica cada manzana en <b>“ya construida en 2015”</b> o <b>“vacía en 2015”</b>. Luego, año a año, se ve dónde cae la construcción nueva: si en manzanas ya construidas (<b>densificación</b>) o en manzanas antes vacías (<b>expansión</b>). El resultado es contundente: <b>80% del crecimiento 2016–2025 es densificación</b>.</p>
+  <div class="two">
+    <div class="chartbox">
+      <h3>m² nuevos por año según tipo de manzana</h3>
+      <p>Barras apiladas: densificación (manzanas construidas en 2015) vs. expansión (manzanas vacías en 2015).</p>
+      <div class="cwrap"><canvas id="c3"></canvas></div>
+    </div>
+    <div class="chartbox">
+      <h3>Reparto total 2016–2025</h3>
+      <p>8,1M m² densificación · 2,0M m² expansión.</p>
+      <div class="cwrap"><canvas id="c3b"></canvas></div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Tipología de crecimiento por comuna<span class="bar"></span></h2>
+  <p class="lead">Reparto del crecimiento 2016–2025 de cada comuna entre densificación y expansión. <b>San Pedro de la Paz</b> es la única claramente <b>mixta</b> (mayor frente de expansión); el resto crece densificándose.</p>
+  <div class="chartbox">
+    <h3>Densificación vs. expansión por comuna (m², 2016–2025)</h3>
+    <p>Barras apiladas horizontales, ordenadas por crecimiento total.</p>
+    <div class="cwrap" style="height:420px"><canvas id="c4"></canvas></div>
+  </div>
+  <div class="findings" id="finds"></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Nota metodológica<span class="bar"></span></h2>
+  <div class="note">
+    <b>Supuestos:</b> (1) La serie temporal se reconstruye con el <b>año de construcción</b> de los predios del catastro vigente (lo edificado que sigue en pie), no con fotos anuales reales — por eso 2025 va parcial y los años muy recientes pueden subir al actualizarse el catastro. (2) Casa vs. departamento se aproxima por <b>pisos</b> (no hay glosa casa/depto en el catastro nacional). (3) “m²/habitante” cruza SII (uso efectivo) con población censal 2024 vía centroide de manzana. (4) La población es de los Censos 2017 y 2024 (INE); el resto, del Catastro SII.
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  Fuente: Catastro de bienes raíces SII + Censos INE 2017/2024 · Elaboración propia · Rodrigo Medina González, Universidad de Concepción.
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const NAVY="#1f4e79",OR="#c55a11",TEAL="#21918c",GREY="#9aa7b4";
+Chart.defaults.font.family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
+Chart.defaults.color="#5b6b7b";
+fetch("data/crecimiento.json").then(r=>r.json()).then(D=>{
+ // ---- C1: indice base 2017 ----
+ const an=D.ej1_personas_vs_m2.stock_m2_por_anio.anios, st=D.ej1_personas_vs_m2.stock_m2_por_anio.stock;
+ const i17=an.indexOf(2017), base=st[i17];
+ const m2idx=st.map((x,i)=> (an[i]>2024)?null : Math.round(1000*x/base)/10);
+ const pob={}; pob[2017]=100; pob[2024]=Math.round(1000*D.ej1_personas_vs_m2.pob_2024/D.ej1_personas_vs_m2.pob_2017)/10;
+ const pobd=an.map(y=> y in pob?pob[y]:null);
+ new Chart(c1,{type:"line",data:{labels:an,datasets:[
+   {label:"m² construidos (índice)",data:m2idx,borderColor:OR,backgroundColor:OR,tension:.25,pointRadius:0,borderWidth:3,spanGaps:true},
+   {label:"Población (índice)",data:pobd,borderColor:NAVY,backgroundColor:NAVY,pointRadius:6,pointHoverRadius:7,showLine:true,borderWidth:2,borderDash:[6,4],spanGaps:true}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},
+   tooltip:{callbacks:{label:c=>c.dataset.label+": "+c.parsed.y+" (base 2017=100)"}}},
+   scales:{y:{title:{display:true,text:"Índice (2017 = 100)"}}}}});
+
+ // ---- C2: casas vs deptos ----
+ const cd=D.ej5_casa_depto;
+ new Chart(c2,{data:{labels:cd.map(x=>x.anio),datasets:[
+   {type:"bar",label:"Casas (1–2 pisos)",data:cd.map(x=>x.casas),backgroundColor:NAVY,order:2},
+   {type:"bar",label:"Departamentos (3+ pisos)",data:cd.map(x=>x.deptos),backgroundColor:OR,order:2},
+   {type:"line",label:"Ratio casas ÷ deptos",data:cd.map(x=>x.ratio_casa_depto),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2,order:1}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},
+   scales:{y:{title:{display:true,text:"unidades nuevas"},stacked:false},
+     y2:{position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"ratio"},suggestedMin:0,suggestedMax:2.5}}}});
+
+ // ---- C3: expansion vs densidad por anio ----
+ const ed=D.ej6_expansion_densidad.filter(x=>x.densificacion+x.expansion>0);
+ new Chart(c3,{data:{labels:ed.map(x=>x.anio),datasets:[
+   {type:"bar",label:"Densificación (m²)",data:ed.map(x=>x.densificacion),backgroundColor:NAVY,stack:"s"},
+   {type:"bar",label:"Expansión (m²)",data:ed.map(x=>x.expansion),backgroundColor:OR,stack:"s"},
+   {type:"line",label:"% densificación",data:ed.map(x=>x.pct_densif),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},
+   scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:"m² nuevos"}},
+     y2:{position:"right",grid:{drawOnChartArea:false},min:0,max:100,title:{display:true,text:"% densif."}}}}});
+
+ // ---- C3b: donut total ----
+ const t=D.ej6_totales;
+ new Chart(c3b,{type:"doughnut",data:{labels:["Densificación","Expansión"],
+   datasets:[{data:[t.densificacion,t.expansion],backgroundColor:[NAVY,OR],borderWidth:2,borderColor:"#fff"}]},
+   options:{maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"bottom"},
+    tooltip:{callbacks:{label:c=>c.label+": "+(c.parsed/1e6).toFixed(1)+"M m² ("+Math.round(100*c.parsed/(t.densificacion+t.expansion))+"%)"}}}}});
+
+ // ---- C4: tipologia por comuna ----
+ const tc=D.ej4_tipologia_comuna;
+ new Chart(c4,{type:"bar",data:{labels:tc.map(x=>x.comuna+" · "+x.tipologia),datasets:[
+   {label:"Densificación",data:tc.map(x=>x.densif),backgroundColor:NAVY,stack:"s"},
+   {label:"Expansión",data:tc.map(x=>x.expansion),backgroundColor:OR,stack:"s"}
+  ]},options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{position:"bottom"},
+   tooltip:{callbacks:{label:c=>c.dataset.label+": "+(c.parsed.x/1e6).toFixed(2)+"M m²"}}},
+   scales:{x:{stacked:true,title:{display:true,text:"m² nuevos 2016–2025"}},y:{stacked:true}}}});
+
+ // findings cards
+ const f=document.getElementById("finds");
+ const cards=[
+  ["Densificación dominante","El 80% de los nuevos m² (2016–2025) caen en manzanas que ya estaban construidas en 2015. El Gran Concepción crece sobre sí mismo más que hacia los bordes."],
+  ["San Pedro, el frente de expansión","Es la única comuna mixta (63% densificación): concentra la mayor proporción de construcción en manzanas antes vacías."],
+  ["La ciudad gana m² más que gente","+23,7% de superficie vs. +3,0% de población entre censos: más espacio construido por habitante."],
+  ["Departamentos al alza","En 2020 y 2023 se construyeron más departamentos que casas (ratio < 1); la vivienda en altura gana terreno."]
+ ];
+ cards.forEach(([h,p])=>{const d=document.createElement("div");d.className="card";d.innerHTML="<h3>"+h+"</h3><p>"+p+"</p>";f.appendChild(d);});
+});
+</script>
+</body>
+</html>

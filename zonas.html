@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mapas zonales · Gran Concepción</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+:root{--navy:#1f4e79;--navy2:#2e5e8c;--or:#c55a11;--bg:#f7f9fc;--ink:#1c2733;--mut:#5b6b7b;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+header{background:linear-gradient(135deg,#1f4e79,#2e5e8c);color:#fff;padding:40px 22px 30px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header h1{margin:0 0 8px;font-size:1.8rem;font-weight:800;letter-spacing:-.5px}
+header p{margin:4px 0;opacity:.92}
+header a{color:#fff;opacity:.9;font-size:.9rem;text-decoration:none}
+.tag{display:inline-block;background:rgba(255,255,255,.16);padding:4px 12px;border-radius:20px;font-size:.8rem;margin-top:10px}
+section{padding:30px 0}
+h2{color:var(--navy);font-size:1.35rem;margin:0 0 6px}
+h2 .bar{display:block;width:54px;height:4px;background:var(--or);border-radius:3px;margin-top:8px}
+.lead{color:var(--mut);max-width:820px}
+.panel{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-top:18px;background:#fff;border:1px solid #e6ebf1;border-radius:12px;padding:16px}
+.panel label{display:block;font-size:.78rem;color:var(--mut);margin-bottom:4px;font-weight:600}
+.panel select{font-size:.95rem;padding:8px 10px;border:1px solid #c7d2de;border-radius:8px;background:#fff;color:var(--ink);min-width:280px}
+.desc{font-size:.85rem;color:var(--mut);flex:1;min-width:220px}
+#map{height:600px;border-radius:14px;border:1px solid #e6ebf1;margin-top:16px;z-index:0}
+.legend{background:#fff;padding:9px 11px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2);font-size:.8rem;line-height:1.55}
+.legend i{display:inline-block;width:13px;height:13px;margin-right:6px;border-radius:2px;vertical-align:-2px}
+.legend b{color:var(--navy)}
+.info{background:#fff;padding:9px 11px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.2);font-size:.82rem;min-width:170px}
+.info b{color:var(--navy)}
+.note{background:#fff8f0;border:1px solid #f0d9bf;border-radius:12px;padding:16px 18px;color:#7a4a17;font-size:.88rem;margin-top:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:18px}
+.kpi{background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:16px}
+.kpi .v{font-size:1.5rem;font-weight:800;color:var(--navy)}
+.kpi .l{color:var(--mut);font-size:.8rem;margin-top:4px}
+footer{padding:30px 0;color:var(--mut);font-size:.85rem;text-align:center}
+a{color:var(--navy)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a href="index.html">← Volver al inicio</a>
+  <h1>Mapas zonales — disponibilidad de suelo y demografía</h1>
+  <p>Indicadores por <b>zona censal</b> (Censo 2024) cruzados con el uso efectivo del suelo (SII). Elige el indicador a visualizar.</p>
+  <span class="tag">316 zonas censales · 12 comunas del Gran Concepción</span>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Selector de indicador<span class="bar"></span></h2>
+  <p class="lead">El cruce SII↔Censo se hace por punto-en-polígono: el centroide de cada manzana SII se asigna a su zona censal (96,6% de los m² del GC quedaron asignados). La <b>disponibilidad de suelo</b> es el cociente m² construidos de un uso ÷ población residente de la zona.</p>
+  <div class="panel">
+    <div>
+      <label>Indicador</label>
+      <select id="sel"></select>
+    </div>
+    <div class="desc" id="desc"></div>
+  </div>
+  <div id="map"></div>
+  <div class="note" id="note"></div>
+</div></section>
+
+<footer><div class="wrap">
+  Fuente: Censo 2024 (cartografía zonal INE) + Catastro SII 2025-S2 · Elaboración propia · Rodrigo Medina González, Universidad de Concepción.
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// rampas (5 clases)
+const R={
+ YlOrRd:["#ffffb2","#fecc5c","#fd8d3c","#f03b20","#bd0026"],
+ PuBu:["#f1eef6","#bdc9e1","#74a9cf","#2b8cbe","#045a8d"],
+ Viridis:["#440154","#3b528b","#21918c","#5ec962","#fde725"],
+ Greens:["#edf8e9","#bae4b3","#74c476","#31a354","#006d2c"],
+ OrRd:["#fef0d9","#fdcc8a","#fc8d59","#e34a33","#b30000"],
+ BuPu:["#edf8fb","#b3cde3","#8c96c6","#8856a7","#810f7c"]
+};
+const IND={
+ dens_hab_ha:{grp:"Demografía y vivienda (Censo 2024)",label:"Densidad poblacional",unit:"hab/ha",ramp:"YlOrRd",log:true,dec:0,
+   d:"Habitantes por hectárea de la zona. Identifica los núcleos más densos del área metropolitana."},
+ pct_depto:{grp:"Demografía y vivienda (Censo 2024)",label:"Viviendas en departamento",unit:"%",ramp:"BuPu",log:false,dec:0,
+   d:"Porcentaje de viviendas que son departamentos (verticalización residencial)."},
+ per_hog:{grp:"Demografía y vivienda (Censo 2024)",label:"Personas por hogar",unit:"",ramp:"OrRd",log:false,dec:2,
+   d:"Tamaño medio del hogar. Valores bajos suelen indicar zonas envejecidas o de departamentos."},
+ pct_60mas:{grp:"Demografía y vivienda (Censo 2024)",label:"Población 60+ años",unit:"%",ramp:"OrRd",log:false,dec:0,
+   d:"Porcentaje de personas de 60 años o más (envejecimiento)."},
+ pct_inmig:{grp:"Demografía y vivienda (Censo 2024)",label:"Población inmigrante",unit:"%",ramp:"BuPu",log:false,dec:0,
+   d:"Porcentaje de residentes nacidos en el extranjero."},
+ escol:{grp:"Demografía y vivienda (Censo 2024)",label:"Escolaridad promedio (18+)",unit:"años",ramp:"Viridis",log:false,dec:1,
+   d:"Años de escolaridad promedio de la población de 18 años y más."},
+ pct_hacin:{grp:"Demografía y vivienda (Censo 2024)",label:"Viviendas hacinadas",unit:"%",ramp:"YlOrRd",log:false,dec:0,
+   d:"Porcentaje de viviendas con hacinamiento (más personas que la capacidad de dormitorios)."},
+ pct_arriendo:{grp:"Demografía y vivienda (Censo 2024)",label:"Hogares arrendatarios",unit:"%",ramp:"PuBu",log:false,dec:0,
+   d:"Porcentaje de hogares que arriendan su vivienda."},
+ m2pp_tot:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Suelo construido total / hab.",unit:"m²/hab",ramp:"Viridis",log:true,dec:1,
+   d:"m² construidos de todos los usos por habitante de la zona."},
+ m2pp_hab:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Suelo habitacional / hab.",unit:"m²/hab",ramp:"Greens",log:true,dec:1,
+   d:"m² construidos de uso habitacional por habitante."},
+ m2pp_comercio:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Comercio / hab.",unit:"m²/hab",ramp:"OrRd",log:true,dec:2,
+   d:"m² de comercio por habitante: acceso a equipamiento comercial."},
+ m2pp_educacion:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Educación y cultura / hab.",unit:"m²/hab",ramp:"BuPu",log:true,dec:2,
+   d:"m² de educación y cultura por habitante (colegios, universidades, bibliotecas, etc.)."},
+ m2pp_salud:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Salud / hab.",unit:"m²/hab",ramp:"YlOrRd",log:true,dec:2,
+   d:"m² de equipamiento de salud por habitante."},
+ m2pp_oficina:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Oficina / hab.",unit:"m²/hab",ramp:"PuBu",log:true,dec:2,
+   d:"m² de oficinas por habitante: concentración de servicios y empleo administrativo."},
+ m2pp_industria:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Industria / hab.",unit:"m²/hab",ramp:"OrRd",log:true,dec:2,
+   d:"m² industriales por habitante."},
+ m2pp_deporte:{grp:"Disponibilidad de suelo (m² construido / habitante)",label:"Deporte y recreación / hab.",unit:"m²/hab",ramp:"Greens",log:true,dec:2,
+   d:"m² de deporte y recreación por habitante."}
+};
+
+const map=L.map("map",{preferCanvas:false}).setView([-36.86,-73.03],11);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+ {attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+
+let feats=[],layer=null,legend=null,info=null,cur="dens_hab_ha";
+
+function quant(vals,log){let v=vals.filter(x=>x!=null&&isFinite(x)&&(!log||x>0)).sort((a,b)=>a-b);
+ if(!v.length)return [0,0,0,0,0];
+ const q=p=>v[Math.min(v.length-1,Math.floor(p*(v.length-1)))];
+ return [q(.2),q(.4),q(.6),q(.8),q(.92)];}
+function colorFor(x,brk,cols,log){if(x==null||!isFinite(x)||(log&&x<=0))return "#d8dde3";
+ for(let i=0;i<brk.length;i++)if(x<=brk[i])return cols[i];return cols[cols.length-1];}
+const fmt=(x,d)=>x==null||!isFinite(x)?"s/d":x.toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+function draw(m){cur=m;const meta=IND[m],cols=R[meta.ramp];
+ const vals=feats.map(f=>f.properties[m]);const brk=quant(vals,meta.log);
+ if(layer)map.removeLayer(layer);
+ layer=L.geoJSON({type:"FeatureCollection",features:feats},{
+  style:f=>({color:"#5b6b7b",weight:.5,fillColor:colorFor(f.properties[m],brk,cols,meta.log),fillOpacity:.78}),
+  onEachFeature:(f,l)=>{const p=f.properties;
+   l.on("mouseover",()=>{l.setStyle({weight:2,color:"#1f4e79"});info.update(p,m);});
+   l.on("mouseout",()=>{l.setStyle({weight:.5,color:"#5b6b7b"});info.update();});
+   l.bindPopup('<b>Zona '+p.zona+'</b> · '+p.comuna+'<br>Población: '+fmt(p.pob,0)+'<br>Viviendas: '+fmt(p.viv,0)+
+     '<br><b>'+meta.label+': '+fmt(p[m],meta.dec)+' '+meta.unit+'</b>');}
+ }).addTo(map);
+ // leyenda
+ if(legend)map.removeControl(legend);
+ legend=L.control({position:"bottomright"});
+ legend.onAdd=()=>{const d=L.DomUtil.create("div","legend");let h='<b>'+meta.label+'</b> ('+meta.unit+')<br>';
+  h+='<i style="background:'+cols[0]+'"></i>≤ '+fmt(brk[0],meta.dec)+'<br>';
+  for(let i=1;i<brk.length;i++)h+='<i style="background:'+cols[i]+'"></i>'+fmt(brk[i-1],meta.dec)+' – '+fmt(brk[i],meta.dec)+'<br>';
+  h+='<i style="background:'+cols[4]+'"></i>> '+fmt(brk[4],meta.dec)+'<br>';
+  h+='<i style="background:#d8dde3"></i>sin dato';d.innerHTML=h;return d;};
+ legend.addTo(map);
+ document.getElementById("desc").innerHTML="<b>"+meta.label+"</b> — "+meta.d;
+}
+
+// info hover
+info=L.control({position:"topright"});
+info.onAdd=function(){this._d=L.DomUtil.create("div","info");this.update();return this._d;};
+info.update=function(p,m){if(!p){this._d.innerHTML="<b>Pasa el cursor</b><br>sobre una zona";return;}
+ const meta=IND[m];this._d.innerHTML="<b>Zona "+p.zona+"</b> · "+p.comuna+"<br>Pob: "+fmt(p.pob,0)+
+  "<br>"+meta.label+":<br><b>"+fmt(p[m],meta.dec)+" "+meta.unit+"</b>";};
+info.addTo(map);
+
+// dropdown
+const sel=document.getElementById("sel");
+const groups={};Object.entries(IND).forEach(([k,v])=>{(groups[v.grp]=groups[v.grp]||[]).push([k,v.label]);});
+Object.entries(groups).forEach(([g,arr])=>{const og=document.createElement("optgroup");og.label=g;
+ arr.forEach(([k,l])=>{const o=document.createElement("option");o.value=k;o.textContent=l;og.appendChild(o);});
+ sel.appendChild(og);});
+sel.value=cur;sel.onchange=()=>draw(sel.value);
+
+document.getElementById("note").innerHTML='<b>Cómo leer estos mapas:</b> las zonas censales son urbanas; las áreas rurales no tienen zona y quedan fuera. La disponibilidad de suelo (m²/hab) es uso <b>efectivo</b> del SII, no normativo. Los cortes de color son por quintiles (escala logarítmica en densidad y m²/hab por su asimetría). Zonas con población ≈0 aparecen como "sin dato" en los indicadores por habitante.';
+
+fetch("data/gc_zonas.geojson").then(r=>r.json()).then(g=>{feats=g.features;draw(cur);
+ map.fitBounds(layer.getBounds(),{padding:[10,10]});});
+</script>
+</body>
+</html>
