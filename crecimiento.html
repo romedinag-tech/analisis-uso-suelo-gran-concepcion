@@ -230,6 +230,19 @@ function legendPct(){const lg=L.control({position:"bottomright"});
   return d;};
  return lg;}
 
+// gráfico inferior: SIEMPRE comparación intercensal entre comunas (escala metropolitana)
+function comunaChart(){const feats=DATA.com.features;
+ if(imChart)imChart.destroy();
+ const ord=[...feats].sort((a,b)=>b.properties.vpct-a.properties.vpct);
+ imChart=new Chart(cint,{type:"bar",data:{labels:ord.map(f=>f.properties.comuna),
+   datasets:[{data:ord.map(f=>f.properties.vpct),backgroundColor:ord.map(f=>f.properties.vpct>=0?"#1a9850":"#d73027")}]},
+   options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
+     tooltip:{callbacks:{label:c=>{const p=ord[c.dataIndex].properties;
+       return sg(p.vpct)+"% ("+sg(p.dpob)+" hab) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24);}}}},
+     scales:{x:{title:{display:true,text:"variación % de población 2017→2024"}}}}});
+ document.getElementById("cint-title").textContent="Variación intercensal de población por comuna (2017→2024)";
+ document.getElementById("cint-sub").textContent="Comparación entre las 12 comunas del Gran Concepción sobre los totales censales oficiales.";}
+
 function renderComuna(){clearMap();const feats=DATA.com.features;
  imLayer=L.geoJSON(DATA.com,{
   style:f=>({color:"#fff",weight:1,fillColor:colC(f.properties.vpct),fillOpacity:.82}),
@@ -256,16 +269,7 @@ function renderComuna(){clearMap();const feats=DATA.com.features;
      if(ft)imap.fitBounds(L.geoJSON(ft).getBounds(),{maxZoom:13,padding:[30,30]});}),0);
    return d;};
  imPanel.addTo(imap);
- if(imChart)imChart.destroy();
- const ord=[...feats].sort((a,b)=>b.properties.vpct-a.properties.vpct);
- imChart=new Chart(cint,{type:"bar",data:{labels:ord.map(f=>f.properties.comuna),
-   datasets:[{data:ord.map(f=>f.properties.vpct),backgroundColor:ord.map(f=>f.properties.vpct>=0?"#1a9850":"#d73027")}]},
-   options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
-     tooltip:{callbacks:{label:c=>{const p=ord[c.dataIndex].properties;
-       return sg(p.vpct)+"% ("+sg(p.dpob)+" hab) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24);}}}},
-     scales:{x:{title:{display:true,text:"variación % de población 2017→2024"}}}}});
- document.getElementById("cint-title").textContent="Crecimiento de población por comuna (2017→2024)";
- document.getElementById("cint-sub").textContent="Variación porcentual sobre los totales censales oficiales.";
+ comunaChart();
  document.getElementById("inote").style.display="none";}
 
 function renderZona(){clearMap();const feats=DATA.zon.features;
@@ -294,17 +298,7 @@ function renderZona(){clearMap();const feats=DATA.zon.features;
      if(ft)imap.fitBounds(L.geoJSON(ft).getBounds(),{maxZoom:15,padding:[40,40]});}),0);
    return d;};
  imPanel.addTo(imap);
- if(imChart)imChart.destroy();
- const t12=feats.filter(f=>f.properties.dpob!=null&&f.properties.pob17>=100)
-   .sort((a,b)=>b.properties.dpob-a.properties.dpob).slice(0,12);
- imChart=new Chart(cint,{type:"bar",data:{labels:t12.map(f=>f.properties.comuna+" · z"+f.properties.zona.slice(-3)),
-   datasets:[{data:t12.map(f=>f.properties.dpob),backgroundColor:"#2e5e8c"}]},
-   options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
-     tooltip:{callbacks:{label:c=>{const p=t12[c.dataIndex].properties;
-       return "+"+fmtN(p.dpob)+" hab ("+sg(p.vpct)+"%) · "+fmtN(p.pob17)+"→"+fmtN(p.pob24i);}}}},
-     scales:{x:{title:{display:true,text:"habitantes ganados (manzanas consolidadas)"}}}}});
- document.getElementById("cint-title").textContent="Top 12 zonas por crecimiento (manzanas consolidadas)";
- document.getElementById("cint-sub").textContent="Variación absoluta en manzanas presentes en ambos censos.";
+ comunaChart();
  const nt=document.getElementById("inote");nt.style.display="block";
  nt.innerHTML='<b>Ojo:</b> esta vista compara solo las <b>manzanas presentes en ambos censos</b> (núcleo consolidado). No incluye las <b>manzanas nuevas</b>, donde ocurre buena parte del crecimiento de comunas en expansión como <b>San Pedro de la Paz</b> y <b>Coronel</b>; por eso su casco antiguo puede aparecer rojo aunque la comuna crezca. Para el dato oficial usa la vista <b>Por comuna (%)</b>.';}
 
