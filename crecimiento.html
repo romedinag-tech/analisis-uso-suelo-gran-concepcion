@@ -93,13 +93,14 @@ a{color:var(--navy)}
 </div></section>
 
 <section><div class="wrap">
-  <h2>¿Qué se construye más: casas o departamentos?<span class="bar"></span></h2>
-  <p class="lead">Unidades habitacionales nuevas por año de construcción. <b>Criterio:</b> departamento/edificio = predio habitacional de 3+ pisos; casa = 1–2 pisos. La construcción de departamentos se acerca y en algunos años supera a la de casas (2020 y 2023, ratio &lt; 1).</p>
+  <h2>Dinámicas de crecimiento, densificación o extensión<span class="bar"></span></h2>
+  <p class="lead">Unidades habitacionales nuevas por año de construcción. <b>Tipo:</b> departamento/edificio = predio habitacional de 3+ pisos; casa = 1–2 pisos. El cociente <b>departamentos ÷ casas</b> resume la dinámica: si predominan los departamentos la ciudad <b>densifica</b>; si predominan las casas se <b>extiende</b>.</p>
   <div class="chartbox">
     <h3>Casas vs. departamentos construidos por año (unidades)</h3>
-    <p>Barras: unidades nuevas. Línea: cociente casas ÷ departamentos (1 = misma cantidad).</p>
+    <p>Barras: unidades nuevas. Línea: cociente departamentos ÷ casas (1 = misma cantidad).</p>
     <div class="cwrap"><canvas id="c2"></canvas></div>
   </div>
+  <div class="note" id="cdbox"></div>
 </div></section>
 
 <section><div class="wrap">
@@ -142,11 +143,14 @@ a{color:var(--navy)}
 </div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const NAVY="#1f4e79",OR="#c55a11",TEAL="#21918c",GREY="#9aa7b4";
 Chart.defaults.font.family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
 Chart.defaults.color="#5b6b7b";
+if(window.ChartDataLabels){Chart.register(ChartDataLabels);}
+Chart.defaults.plugins.datalabels.display=false;
 fetch("data/crecimiento.json").then(r=>r.json()).then(D=>{
  // ---- C1: indice base 2017 ----
  const an=D.ej1_personas_vs_m2.stock_m2_por_anio.anios, st=D.ej1_personas_vs_m2.stock_m2_por_anio.stock;
@@ -161,32 +165,40 @@ fetch("data/crecimiento.json").then(r=>r.json()).then(D=>{
    tooltip:{callbacks:{label:c=>c.dataset.label+": "+c.parsed.y+" (base 2017=100)"}}},
    scales:{y:{title:{display:true,text:"Índice (2017 = 100)"}}}}});
 
- // ---- C2: casas vs deptos ----
+ // ---- C2: casas vs deptos + ratio depto/casa ----
  const cd=D.ej5_casa_depto;
+ const rdc=cd.map(x=> x.casas>0 ? x.deptos/x.casas : null).filter(v=>v!=null);
+ const avgR=rdc.reduce((a,b)=>a+b,0)/rdc.length;
+ const clas= avgR>1.25 ? "Densificación" : (avgR<0.75 ? "Extensión" : "Mixta");
+ const clasCol= clas==="Densificación"?"#1a9850":(clas==="Extensión"?"#c55a11":"#2e5e8c");
  new Chart(c2,{data:{labels:cd.map(x=>x.anio),datasets:[
    {type:"bar",label:"Casas (1–2 pisos)",data:cd.map(x=>x.casas),backgroundColor:NAVY,order:2},
    {type:"bar",label:"Departamentos (3+ pisos)",data:cd.map(x=>x.deptos),backgroundColor:OR,order:2},
-   {type:"line",label:"Ratio casas ÷ deptos",data:cd.map(x=>x.ratio_casa_depto),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2,order:1}
+   {type:"line",label:"Ratio departamentos ÷ casas",data:cd.map(x=> x.casas>0?Math.round(100*x.deptos/x.casas)/100:null),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2,order:1}
   ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},
    scales:{y:{title:{display:true,text:"unidades nuevas"},stacked:false},
-     y2:{position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"ratio"},suggestedMin:0,suggestedMax:2.5}}}});
+     y2:{position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"ratio depto/casa"},suggestedMin:0,suggestedMax:2}}}});
+ document.getElementById("cdbox").innerHTML='<b>Dinámica 2015–2024:</b> ratio promedio <b>departamentos ÷ casas = '+avgR.toFixed(2).replace(".",",")+'</b> → <b style="color:'+clasCol+'">'+clas+'</b>.<br><b>Criterio:</b> &gt; 1,25 = densificación (predominan departamentos) · &lt; 0,75 = extensión (predominan casas) · 0,75–1,25 = mixta.';
 
  // ---- C3: expansion vs densidad por anio ----
  const ed=D.ej6_expansion_densidad.filter(x=>x.densificacion+x.expansion>0);
  new Chart(c3,{data:{labels:ed.map(x=>x.anio),datasets:[
    {type:"bar",label:"Densificación (m²)",data:ed.map(x=>x.densificacion),backgroundColor:NAVY,stack:"s"},
    {type:"bar",label:"Expansión (m²)",data:ed.map(x=>x.expansion),backgroundColor:OR,stack:"s"},
-   {type:"line",label:"% densificación",data:ed.map(x=>x.pct_densif),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2}
-  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},
+   {type:"line",label:"% densificación",data:ed.map(x=>x.pct_densif),borderColor:TEAL,backgroundColor:TEAL,yAxisID:"y2",tension:.25,pointRadius:4,borderWidth:2,datalabels:{display:false}}
+  ]},options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},
+   datalabels:{display:ctx=>ctx.dataset.type==="bar",color:"#fff",font:{size:10,weight:"bold"},
+     formatter:(v,ctx)=>{const e=ed[ctx.dataIndex];const tot=e.densificacion+e.expansion;return tot&&v/tot>=0.06?Math.round(100*v/tot)+"%":"";}}},
    scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:"m² nuevos"}},
      y2:{position:"right",grid:{drawOnChartArea:false},min:0,max:100,title:{display:true,text:"% densif."}}}}});
 
  // ---- C3b: donut total ----
- const t=D.ej6_totales;
+ const t=D.ej6_totales; const tt=t.densificacion+t.expansion;
  new Chart(c3b,{type:"doughnut",data:{labels:["Densificación","Expansión"],
    datasets:[{data:[t.densificacion,t.expansion],backgroundColor:[NAVY,OR],borderWidth:2,borderColor:"#fff"}]},
    options:{maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"bottom"},
-    tooltip:{callbacks:{label:c=>c.label+": "+(c.parsed/1e6).toFixed(1)+"M m² ("+Math.round(100*c.parsed/(t.densificacion+t.expansion))+"%)"}}}}});
+    datalabels:{display:true,color:"#fff",font:{size:16,weight:"bold"},formatter:v=>Math.round(100*v/tt)+"%"},
+    tooltip:{callbacks:{label:c=>c.label+": "+(c.parsed/1e6).toFixed(1)+"M m² ("+Math.round(100*c.parsed/tt)+"%)"}}}}});
 
  // ---- C4: tipologia por comuna ----
  const tc=D.ej4_tipologia_comuna;

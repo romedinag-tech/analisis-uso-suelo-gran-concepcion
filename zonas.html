@@ -58,6 +58,11 @@ a{color:var(--navy)}
   </div>
   <div id="map"></div>
   <div class="note" id="note"></div>
+  <div style="background:#fff;border:1px solid #e6ebf1;border-radius:14px;padding:18px;margin-top:18px;box-shadow:0 2px 10px rgba(20,40,80,.04)">
+    <h3 id="cct" style="margin:0 0 2px;color:var(--navy);font-size:1.05rem">Comparación por comuna</h3>
+    <p id="ccs" style="margin:0 0 10px;color:var(--mut);font-size:.86rem">El mismo indicador del mapa, agregado a nivel de comuna.</p>
+    <div style="position:relative;height:430px"><canvas id="ccomp"></canvas></div>
+  </div>
 </div></section>
 
 <footer><div class="wrap">
@@ -65,6 +70,7 @@ a{color:var(--navy)}
 </div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 // rampas (5 clases)
 const R={
@@ -145,6 +151,35 @@ function draw(m){cur=m;const meta=IND[m],cols=R[meta.ramp];
   h+='<i style="background:#d8dde3"></i>sin dato';d.innerHTML=h;return d;};
  legend.addTo(map);
  document.getElementById("desc").innerHTML="<b>"+meta.label+"</b> — "+meta.d;
+ updateCompare(m);
+}
+
+// ---- comparación por comuna ----
+const WG={pct_depto:"viv",pct_casa:"viv",pct_hacin:"viv",pct_arriendo:"hog",
+ pct_60mas:"pob",pct_inmig:"pob",escol:"pob",
+ m2pp_tot:"pob",m2pp_hab:"pob",m2pp_comercio:"pob",m2pp_educacion:"pob",m2pp_salud:"pob",m2pp_oficina:"pob",m2pp_industria:"pob",m2pp_deporte:"pob"};
+function aggInd(arr,m){
+ if(m==="dens_hab_ha"){let P=0,A=0;arr.forEach(f=>{const p=f.properties;if(p.pob>0&&p.area_ha>0){P+=p.pob;A+=p.area_ha;}});return A>0?P/A:null;}
+ if(m==="per_hog"){let P=0,H=0;arr.forEach(f=>{const p=f.properties;if(p.hog>0){P+=p.pob;H+=p.hog;}});return H>0?P/H:null;}
+ const wk=WG[m]||"pob";let num=0,den=0;
+ arr.forEach(f=>{const p=f.properties,v=p[m],w=p[wk];if(v!=null&&isFinite(v)&&w>0){num+=v*w;den+=w;}});
+ return den>0?num/den:null;}
+let ccompChart=null;
+function updateCompare(m){const meta=IND[m];
+ const byc={};feats.forEach(f=>{const c=f.properties.comuna;(byc[c]=byc[c]||[]).push(f);});
+ let rows=Object.entries(byc).map(([c,a])=>[c,aggInd(a,m)]).filter(r=>r[1]!=null).sort((a,b)=>b[1]-a[1]);
+ const gc=aggInd(feats,m);
+ const labels=rows.map(r=>r[0]).concat(["Gran Concepción (prom.)"]);
+ const data=rows.map(r=>Math.round(r[1]*100)/100).concat([gc!=null?Math.round(gc*100)/100:null]);
+ const colors=rows.map(()=>R[meta.ramp][3]).concat(["#c55a11"]);
+ if(ccompChart)ccompChart.destroy();
+ ccompChart=new Chart(document.getElementById("ccomp"),{type:"bar",
+  data:{labels,datasets:[{data,backgroundColor:colors}]},
+  options:{indexAxis:"y",maintainAspectRatio:false,plugins:{legend:{display:false},
+   tooltip:{callbacks:{label:c=>fmt(c.parsed.x,meta.dec)+" "+meta.unit}}},
+   scales:{x:{title:{display:true,text:meta.label+(meta.unit?" ("+meta.unit+")":"")}}}}});
+ document.getElementById("cct").textContent="Comparación por comuna — "+meta.label;
+ document.getElementById("ccs").innerHTML=meta.d+" <b>La barra naranja es el promedio del Gran Concepción.</b>";
 }
 
 // info hover
